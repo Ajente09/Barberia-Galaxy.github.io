@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Barbería Galaxy - Reservas</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 500px;
+    margin: 50px auto;
+    background: #1f1f1f;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #ff9800;
+}
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 8px;
+}
+input, select {
+    background: #333;
+    color: #fff;
+}
+button {
+    background: #ff9800;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+button:hover {
+    background: #e68900;
+}
+#message {
+    margin-top: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+a.confirm-link {
+    color: #00ff00;
+    text-decoration: none;
+}
+a.confirm-link:hover {
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Reserva tu cita</h1>
+<form id="bookingForm">
+    <input type="text" id="name" placeholder="Nombre" required>
+    <input type="tel" id="phone" placeholder="Teléfono (ej: 3412345678)" required>
+    <select id="barber" required>
+        <option value="">Selecciona barbero</option>
+        <option value="ANAS">ANAS</option>
+        <option value="NAIM">NAIM</option>
+        <option value="AYOUB">AYOUB</option>
+    </select>
+    <select id="service" required>
+        <option value="">Selecciona servicio</option>
+        <option value="Corte">Corte de cabello</option>
+        <option value="Barba">Barba</option>
+        <option value="Corte+Barba">Corte + Barba</option>
+    </select>
+    <input type="date" id="date" required>
+    <select id="time" required>
+        <option value="">Selecciona hora</option>
+        <option value="09:00">09:00</option>
+        <option value="10:00">10:00</option>
+        <option value="11:00">11:00</option>
+        <option value="12:00">12:00</option>
+        <option value="13:00">13:00</option>
+        <option value="14:00">14:00</option>
+        <option value="15:00">15:00</option>
+        <option value="16:00">16:00</option>
+    </select>
+    <button type="submit">Reservar</button>
+</form>
+<div id="message"></div>
+</div>
+
+<script>
+const bookings = []; // Guarda reservas de la sesión
+const allTimes = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00"];
+
+const barberSelect = document.getElementById('barber');
+const dateInput = document.getElementById('date');
+const timeSelect = document.getElementById('time');
+
+// Función para actualizar horas disponibles
+function updateAvailableTimes() {
+    const barber = barberSelect.value;
+    const date = dateInput.value;
+
+    // Limpiar selector
+    timeSelect.innerHTML = '<option value="">Selecciona hora</option>';
+
+    if(!barber || !date) return;
+
+    // Filtrar horas ocupadas
+    const occupied = bookings
+        .filter(b => b.barber === barber && b.date === date)
+        .map(b => b.time);
+
+    allTimes.forEach(t => {
+        if(!occupied.includes(t)){
+            const option = document.createElement('option');
+            option.value = t;
+            option.textContent = t;
+            timeSelect.appendChild(option);
+        }
+    });
+}
+
+barberSelect.addEventListener('change', updateAvailableTimes);
+dateInput.addEventListener('change', updateAvailableTimes);
+
+document.getElementById('bookingForm').addEventListener('submit', function(e){
+    e.preventDefault();
+
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const barber = barberSelect.value;
+    const service = document.getElementById('service').value;
+    const date = dateInput.value;
+    const time = timeSelect.value;
+
+    if(!name || !phone || !barber || !service || !date || !time){
+        document.getElementById('message').textContent = "Por favor completa todos los campos.";
+        return;
+    }
+
+    // Verifica conflicto de horario
+    const conflict = bookings.find(b => b.barber===barber && b.date===date && b.time===time);
+    if(conflict){
+        document.getElementById('message').textContent = "Hora ocupada, elige otra.";
+        updateAvailableTimes(); // Actualiza el selector
+        return;
+    }
+
+    const booking = {name, phone, barber, service, date, time};
+    bookings.push(booking);
+
+    const whatsappMessage = `Hola ${name}, tu cita con ${barber} para ${service} es el ${date} a las ${time}.`;
+    const whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(whatsappMessage)}`;
+
+    document.getElementById('message').innerHTML = `✅ Reserva realizada.<br><a href="${whatsappLink}" target="_blank" class="confirm-link">Confirmar por WhatsApp</a>`;
+
+    document.getElementById('bookingForm').reset();
+    updateAvailableTimes();
+});
+</script>
+</body>
+</html>
